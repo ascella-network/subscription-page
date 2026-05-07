@@ -197,7 +197,7 @@ export class RootService {
     }
 
     /** Tags from linked subscriptions that must not be injected into the main config. */
-    private readonly FILTERED_OUTBOUND_TAGS = new Set(['BLOCK', 'DIRECT']);
+    private readonly FILTERED_OUTBOUND_PROTOCOLS = new Set(['blackhole', 'freedom', 'loopback']);
 
     /**
      * Collects outbounds from all linked subscriptions (excluding DIRECT/BLOCK tags)
@@ -278,8 +278,8 @@ export class RootService {
 
                 const filtered = outbounds.filter(
                     (ob: unknown) =>
-                        !this.FILTERED_OUTBOUND_TAGS.has(
-                            (ob as Record<string, unknown>)?.tag as string,
+                        !this.FILTERED_OUTBOUND_PROTOCOLS.has(
+                            (ob as Record<string, unknown>)?.protocol as string,
                         ),
                 );
                 extraOutbounds.push(...filtered);

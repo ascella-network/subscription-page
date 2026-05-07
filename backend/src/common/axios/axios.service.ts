@@ -1,16 +1,16 @@
-import type { IncomingHttpHeaders } from 'node:http'
+import type { IncomingHttpHeaders } from 'node:http';
 
 import axios, {
     AxiosError,
     AxiosInstance,
     AxiosResponseHeaders,
     RawAxiosResponseHeaders,
-} from 'axios'
-import { exit } from 'node:process'
-import { table } from 'table'
+} from 'axios';
+import { exit } from 'node:process';
+import { table } from 'table';
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import {
     GetMetadataCommand,
@@ -19,13 +19,15 @@ import {
     GetSubscriptionPageConfigCommand,
     GetSubscriptionPageConfigsCommand,
     GetUserByUsernameCommand,
+    GetUserMetadataCommand,
     REMNAWAVE_REAL_IP_HEADER,
+    ResolveUserCommand,
     TRequestTemplateTypeKeys,
-} from '@remnawave/backend-contract'
+} from '@remnawave/backend-contract';
 
-import { IGNORED_HEADERS } from '@common/constants'
+import { IGNORED_HEADERS } from '@common/constants';
 
-import { ICommandResponse } from '../types/command-response.type'
+import { ICommandResponse } from '../types/command-response.type';
 
 @Injectable()
 export class AxiosService implements OnModuleInit {
@@ -333,6 +335,64 @@ export class AxiosService implements OnModuleInit {
             }
 
             return null;
+        }
+    }
+
+    public async resolveUser(
+        clientIp: string,
+        resolveData: ResolveUserCommand.Request,
+    ): Promise<ICommandResponse<ResolveUserCommand.Response>> {
+        try {
+            const response = await this.axiosInstance.request<ResolveUserCommand.Response>({
+                method: ResolveUserCommand.endpointDetails.REQUEST_METHOD,
+                url: ResolveUserCommand.url,
+                data: resolveData,
+            });
+
+            return {
+                isOk: true,
+                response: response.data,
+            };
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(
+                    `Error in ResolveUser Request: ${error.message} for ${resolveData.shortUuid}`,
+                );
+            } else {
+                this.logger.error('Error in ResolveUser Request', error);
+            }
+
+            return { isOk: false };
+        }
+    }
+
+    public async getUserMetadata(
+        clientIp: string,
+        uuid: string,
+    ): Promise<ICommandResponse<GetUserMetadataCommand.Response>> {
+        try {
+            const response = await this.axiosInstance.request<GetUserMetadataCommand.Response>({
+                method: GetUserMetadataCommand.endpointDetails.REQUEST_METHOD,
+                url: GetUserMetadataCommand.url(uuid),
+            });
+
+            return {
+                isOk: true,
+                response: response.data,
+            };
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                if (error.response?.status === 404) {
+                    this.logger.warn(`User ${uuid} has no metadata in Remnawave.`);
+                    return { isOk: false };
+                }
+
+                this.logger.error(`Error in GetUserMetadata Request: ${error.message} for ${uuid}`);
+            } else {
+                this.logger.error(`Error in GetUserMetadata Request: ${error} for ${uuid}`);
+            }
+
+            return { isOk: false };
         }
     }
 }

@@ -1,5 +1,5 @@
-import { readPackageJSON } from 'pkg-types'
-import { getBorderCharacters, table } from 'table'
+import { getBorderCharacters, table } from 'table';
+import { readPackageJSON } from 'pkg-types';
 
 export async function getStartMessage() {
     const pkg = await readPackageJSON();

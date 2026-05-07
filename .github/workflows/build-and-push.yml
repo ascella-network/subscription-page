@@ -20,7 +20,6 @@ jobs:
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          thread_id: ${{ secrets.TELEGRAM_TOPIC_ID }}
           status: info
           notify_fields: 'repository,branch,commit,workflow'
           title: 'Build started'
@@ -87,7 +86,6 @@ jobs:
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          thread_id: ${{ secrets.TELEGRAM_TOPIC_ID }}
           status: success
           notify_fields: 'repository,branch,commit,workflow'
           title: 'Build finished'
@@ -105,7 +103,6 @@ jobs:
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          thread_id: ${{ secrets.TELEGRAM_TOPIC_ID }}
           status: error
           notify_fields: 'repository,branch,commit,workflow'
           title: 'Build failed'

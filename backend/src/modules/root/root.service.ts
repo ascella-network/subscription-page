@@ -2,13 +2,13 @@ import { Request, Response } from 'express';
 import { createHash } from 'node:crypto';
 import { nanoid } from 'nanoid';
 
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Logger } from '@nestjs/common';
 
 import { TRequestTemplateTypeKeys } from '@remnawave/backend-contract';
 
+import { canParseJSON } from '@common/helpers/can-parse-json';
 import { AxiosService } from '@common/axios/axios.service';
 import { IGNORED_HEADERS } from '@common/constants';
 import { sanitizeUsername } from '@common/utils';
@@ -111,6 +111,15 @@ export class RootService {
                 return;
             }
 
+            subscriptionDataResponse.response = await this.mergeLinkedSubscriptions(
+                clientIp,
+                shortUuid,
+                subscriptionDataResponse.response,
+                req.headers,
+                !!clientType,
+                clientType,
+            );
+
             if (subscriptionDataResponse.headers) {
                 Object.entries(subscriptionDataResponse.headers)
                     .filter(([key]) => !IGNORED_HEADERS.has(key.toLowerCase()))
@@ -170,6 +179,92 @@ export class RootService {
         ];
 
         return genericPaths.some((genericPath) => path.includes(genericPath));
+    }
+
+    private parseAsJsonArray(response: unknown): unknown[] | null {
+        if (Array.isArray(response)) {
+            return response;
+        }
+
+        if (typeof response === 'string' && canParseJSON(response)) {
+            const parsed = JSON.parse(response);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+
+        return null;
+    }
+
+    private async mergeLinkedSubscriptions(
+        clientIp: string,
+        shortUuid: string,
+        response: unknown,
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType?: TRequestTemplateTypeKeys,
+    ): Promise<unknown> {
+        const isString = typeof response === 'string';
+        const mainArray = this.parseAsJsonArray(response);
+
+        if (!mainArray) {
+            return response;
+        }
+
+        const resolveResult = await this.axiosService.resolveUser(clientIp, { shortUuid });
+        if (!resolveResult.isOk || !resolveResult.response) {
+            return response;
+        }
+
+        const userUuid = resolveResult.response.response.uuid;
+
+        const metadataResult = await this.axiosService.getUserMetadata(clientIp, userUuid);
+        if (!metadataResult.isOk || !metadataResult.response) {
+            return response;
+        }
+
+        this.logger.log(`Metadata: ${JSON.stringify(metadataResult.response.response.metadata)}`);
+
+        const metadata = metadataResult.response.response.metadata as Record<string, unknown>;
+        const linkedSubs = metadata?.linked_subs;
+
+        if (!Array.isArray(linkedSubs) || linkedSubs.length === 0) {
+            return response;
+        }
+
+        const merged = [...mainArray];
+
+        for (const linkedId of linkedSubs) {
+            if (typeof linkedId !== 'number') {
+                continue;
+            }
+
+            const linkedResolve = await this.axiosService.resolveUser(clientIp, { id: linkedId });
+            if (!linkedResolve.isOk || !linkedResolve.response) {
+                continue;
+            }
+
+            const linkedShortUuid = linkedResolve.response.response.shortUuid;
+
+            const linkedSub = await this.axiosService.getSubscription(
+                clientIp,
+                linkedShortUuid,
+                headers,
+                withClientType,
+                clientType,
+            );
+
+            if (!linkedSub) {
+                continue;
+            }
+
+            const linkedArray = this.parseAsJsonArray(linkedSub.response);
+            if (linkedArray) {
+                merged.push(...linkedArray);
+            }
+        }
+
+        return isString ? JSON.stringify(merged) : merged;
     }
 
     private async returnWebpage(

@@ -196,6 +196,13 @@ export class RootService {
         return null;
     }
 
+    /** Tags from linked subscriptions that must not be injected into the main config. */
+    private readonly FILTERED_OUTBOUND_TAGS = new Set(['BLOCK', 'DIRECT']);
+
+    /**
+     * Collects outbounds from all linked subscriptions (excluding DIRECT/BLOCK tags)
+     * and injects them into every config object of the main subscription array.
+     */
     private async mergeLinkedSubscriptions(
         clientIp: string,
         shortUuid: string,
@@ -232,7 +239,7 @@ export class RootService {
             return response;
         }
 
-        const merged = [...mainArray];
+        const extraOutbounds: unknown[] = [];
 
         for (const linkedId of linkedSubs) {
             if (typeof linkedId !== 'number') {
@@ -259,12 +266,36 @@ export class RootService {
             }
 
             const linkedArray = this.parseAsJsonArray(linkedSub.response);
-            if (linkedArray) {
-                merged.push(...linkedArray);
+            if (!linkedArray) {
+                continue;
+            }
+
+            for (const config of linkedArray) {
+                const outbounds = (config as Record<string, unknown>).outbounds;
+                if (!Array.isArray(outbounds)) {
+                    continue;
+                }
+
+                const filtered = outbounds.filter(
+                    (ob: unknown) =>
+                        !this.FILTERED_OUTBOUND_TAGS.has(
+                            (ob as Record<string, unknown>)?.tag as string,
+                        ),
+                );
+                extraOutbounds.push(...filtered);
             }
         }
 
-        return isString ? JSON.stringify(merged) : merged;
+        if (extraOutbounds.length > 0) {
+            for (const config of mainArray) {
+                const outbounds = (config as Record<string, unknown>).outbounds;
+                if (Array.isArray(outbounds)) {
+                    outbounds.push(...extraOutbounds);
+                }
+            }
+        }
+
+        return isString ? JSON.stringify(mainArray) : mainArray;
     }
 
     private async returnWebpage(

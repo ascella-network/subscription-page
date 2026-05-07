@@ -65,8 +65,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ascella/subscription-page:dev
-            ghcr.io/ascella/subscription-page:dev
+            ascellanetwork/subscription-page:dev
+            ghcr.io/ascella-network/subscription-page:dev
 
   send-telegram-message:
     name: Send Telegram message

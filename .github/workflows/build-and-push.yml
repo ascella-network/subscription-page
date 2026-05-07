@@ -68,10 +68,10 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            ascella/subscription-page:latest
-            ascella/subscription-page:${{github.ref_name}}
-            ghcr.io/ascella/subscription-page:latest
-            ghcr.io/ascella/subscription-page:${{github.ref_name}}
+            ascellanetwork/subscription-page:latest
+            ascellanetwork/subscription-page:${{github.ref_name}}
+            ghcr.io/ascella-network/subscription-page:latest
+            ghcr.io/ascella-network/subscription-page:${{github.ref_name}}
 
   send-telegram-message:
     name: Send Telegram message

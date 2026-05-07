@@ -1,6 +1,6 @@
 {
   "name": "@ascella/subscription-page",
-  "version": "7.3.0",
+  "version": "7.4.0",
   "description": "Ascella Subscription Page",
   "private": false,
   "type": "commonjs",
@@ -18,7 +18,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "NODE_ENV=development nest start --watch",
+    "start:dev": "nest start --watch",
     "start:debug": "NODE_ENV=development nest start --debug --watch",
     "start:prod": "NODE_ENV=production NODE_NO_WARNINGS=1 node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",

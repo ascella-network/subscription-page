@@ -1,16 +1,16 @@
-import type { IncomingHttpHeaders } from 'node:http';
+import type { IncomingHttpHeaders } from 'node:http'
 
 import axios, {
     AxiosError,
     AxiosInstance,
     AxiosResponseHeaders,
     RawAxiosResponseHeaders,
-} from 'axios';
-import { exit } from 'node:process';
-import { table } from 'table';
+} from 'axios'
+import { exit } from 'node:process'
+import { table } from 'table'
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 
 import {
     GetMetadataCommand,
@@ -21,11 +21,11 @@ import {
     GetUserByUsernameCommand,
     REMNAWAVE_REAL_IP_HEADER,
     TRequestTemplateTypeKeys,
-} from '@remnawave/backend-contract';
+} from '@remnawave/backend-contract'
 
-import { IGNORED_HEADERS } from '@common/constants';
+import { IGNORED_HEADERS } from '@common/constants'
 
-import { ICommandResponse } from '../types/command-response.type';
+import { ICommandResponse } from '../types/command-response.type'
 
 @Injectable()
 export class AxiosService implements OnModuleInit {
@@ -37,7 +37,7 @@ export class AxiosService implements OnModuleInit {
             baseURL: this.configService.getOrThrow('REMNAWAVE_PANEL_URL'),
             timeout: 10_000,
             headers: {
-                'user-agent': 'Remnawave Subscription Page',
+                'user-agent': 'Ascella Subscription Page',
                 Authorization: `Bearer ${this.configService.getOrThrow('REMNAWAVE_API_TOKEN')}`,
             },
         });

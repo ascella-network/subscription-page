@@ -1,18 +1,18 @@
 {
-  "name": "@remnawave/subscription-page",
+  "name": "@ascella/subscription-page",
   "version": "7.2.0",
-  "description": "Remnawave Subscription Page",
+  "description": "Ascella Subscription Page",
   "private": false,
   "type": "commonjs",
   "license": "AGPL-3.0-only",
-  "author": "REMNAWAVE <github.com/remnawave>",
-  "homepage": "https://github.com/remnawave",
+  "author": "Ascella <github.com/ascella-network>",
+  "homepage": "https://github.com/ascella-network",
   "repository": {
     "type": "git",
-    "url": "https://github.com/remnawave/subscription-page"
+    "url": "https://github.com/ascella-network/subscription-page"
   },
   "bugs": {
-    "url": "https://github.com/remnawave/subscription-page/issues"
+    "url": "https://github.com/ascella-network/subscription-page/issues"
   },
   "scripts": {
     "build": "nest build",

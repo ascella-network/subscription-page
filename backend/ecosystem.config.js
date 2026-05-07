@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: 'remnawave-subscription-page',
+            name: 'ascella-subscription-page',
             script: 'dist/src/main.js',
             watch: false,
             instances: process.env.SUBSCRIPTION_PAGE_INSTANCES || 1,

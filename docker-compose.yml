@@ -1,5 +1,5 @@
 services:
-  remnawave-subscription-page:
+  ascella-subscription-page:
     build:
       context: .
       dockerfile: Dockerfile

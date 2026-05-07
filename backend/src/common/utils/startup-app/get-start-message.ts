@@ -1,12 +1,12 @@
-import { getBorderCharacters, table } from 'table';
-import { readPackageJSON } from 'pkg-types';
+import { readPackageJSON } from 'pkg-types'
+import { getBorderCharacters, table } from 'table'
 
 export async function getStartMessage() {
     const pkg = await readPackageJSON();
 
     return table([['Docs → https://docs.rw\nCommunity → https://t.me/remnawave']], {
         header: {
-            content: `Remnawave Subscription Page v${pkg.version}`,
+            content: `Ascella Subscription Page v${pkg.version}`,
             alignment: 'center',
         },
         columnDefault: {

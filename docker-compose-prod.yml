@@ -1,17 +1,17 @@
 services:
-  remnawave-subscription-page:
-    image: remnawave/subscription-page:latest
-    container_name: remnawave-subscription-page
-    hostname: remnawave-subscription-page
+  ascella-subscription-page:
+    image: ascella/subscription-page:latest
+    container_name: ascella-subscription-page
+    hostname: ascella-subscription-page
     restart: always
     env_file:
       - .env
     ports:
       - '127.0.0.1:3010:3010'
     networks:
-      - remnawave-network
+      - ascella-network
 
 networks:
-  remnawave-network:
+  ascella-network:
     driver: bridge
     external: true

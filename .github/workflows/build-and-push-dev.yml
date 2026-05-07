@@ -66,8 +66,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            remnawave/subscription-page:dev
-            ghcr.io/remnawave/subscription-page:dev
+            ascella/subscription-page:dev
+            ghcr.io/ascella/subscription-page:dev
 
   send-telegram-message:
     name: Send Telegram message

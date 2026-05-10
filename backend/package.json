@@ -1,6 +1,6 @@
 {
   "name": "@ascella/subscription-page",
-  "version": "7.4.2",
+  "version": "7.5.0",
   "description": "Ascella Subscription Page",
   "private": false,
   "type": "commonjs",

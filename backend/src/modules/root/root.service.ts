@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { createHash } from 'node:crypto';
 import { nanoid } from 'nanoid';
+import { createHash } from 'node:crypto';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -8,9 +8,9 @@ import { JwtService } from '@nestjs/jwt';
 
 import { TRequestTemplateTypeKeys } from '@remnawave/backend-contract';
 
-import { canParseJSON } from '@common/helpers/can-parse-json';
 import { AxiosService } from '@common/axios/axios.service';
 import { IGNORED_HEADERS } from '@common/constants';
+import { canParseJSON } from '@common/helpers/can-parse-json';
 import { sanitizeUsername } from '@common/utils';
 
 import { SubpageConfigService } from './subpage-config.service';
@@ -22,6 +22,8 @@ export class RootService {
     private readonly isMarzbanLegacyLinkEnabled: boolean;
     private readonly marzbanSecretKeys: string[];
     private readonly mlDropRevokedSubscriptions: boolean;
+    private readonly mergeHosts: boolean;
+    private readonly mergeOutbounds: boolean;
     constructor(
         private readonly configService: ConfigService,
         private readonly jwtService: JwtService,
@@ -42,6 +44,9 @@ export class RootService {
         } else {
             this.marzbanSecretKeys = [];
         }
+
+        this.mergeHosts = this.configService.getOrThrow<boolean>('MERGE_HOSTS');
+        this.mergeOutbounds = this.configService.getOrThrow<boolean>('MERGE_OUTBOUNDS');
     }
 
     public async serveSubscriptionPage(
@@ -239,42 +244,102 @@ export class RootService {
             return response;
         }
 
-        const extraOutbounds: unknown[] = [];
+        const args = [clientIp, linkedSubs, headers, withClientType, clientType] as const;
+
+        let result: unknown[] = [...mainArray];
+
+        if (this.mergeOutbounds) {
+            result = await this.mergeByOutbounds(...args, result);
+        }
+
+        if (this.mergeHosts) {
+            result = await this.mergeByHosts(...args, result);
+        }
+
+        return isString ? JSON.stringify(result) : result;
+    }
+
+    /** Fetches subscription for each linkedId and returns its short UUID, or null on failure. */
+    private async fetchLinkedSub(
+        clientIp: string,
+        linkedId: number,
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType?: TRequestTemplateTypeKeys,
+    ) {
+        const linkedResolve = await this.axiosService.resolveUser({ id: linkedId });
+        if (!linkedResolve.isOk || !linkedResolve.response) return null;
+
+        const linkedShortUuid = linkedResolve.response.response.shortUuid;
+        const linkedSub = await this.axiosService.getSubscription(
+            clientIp,
+            linkedShortUuid,
+            headers,
+            withClientType,
+            clientType,
+        );
+        return linkedSub ?? null;
+    }
+
+    /** Merges full host configs from linked subscriptions into the current array (MERGE_HOSTS=true). */
+    private async mergeByHosts(
+        clientIp: string,
+        linkedSubs: unknown[],
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType: TRequestTemplateTypeKeys | undefined,
+        current: unknown[],
+    ): Promise<unknown[]> {
+        const merged = [...current];
 
         for (const linkedId of linkedSubs) {
-            if (typeof linkedId !== 'number') {
-                continue;
-            }
+            if (typeof linkedId !== 'number') continue;
 
-            const linkedResolve = await this.axiosService.resolveUser({ id: linkedId });
-            if (!linkedResolve.isOk || !linkedResolve.response) {
-                continue;
-            }
-
-            const linkedShortUuid = linkedResolve.response.response.shortUuid;
-
-            const linkedSub = await this.axiosService.getSubscription(
+            const linkedSub = await this.fetchLinkedSub(
                 clientIp,
-                linkedShortUuid,
+                linkedId,
                 headers,
                 withClientType,
                 clientType,
             );
-
-            if (!linkedSub) {
-                continue;
-            }
+            if (!linkedSub) continue;
 
             const linkedArray = this.parseAsJsonArray(linkedSub.response);
-            if (!linkedArray) {
-                continue;
-            }
+            if (linkedArray) merged.push(...linkedArray);
+        }
+
+        return merged;
+    }
+
+    /** Injects outbounds from linked subscriptions into each config of the current array (MERGE_OUTBOUNDS=true). */
+    private async mergeByOutbounds(
+        clientIp: string,
+        linkedSubs: unknown[],
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType: TRequestTemplateTypeKeys | undefined,
+        current: unknown[],
+    ): Promise<unknown[]> {
+        const extraOutbounds: unknown[] = [];
+
+        for (const linkedId of linkedSubs) {
+            if (typeof linkedId !== 'number') continue;
+
+            const linkedSub = await this.fetchLinkedSub(
+                clientIp,
+                linkedId,
+                headers,
+                withClientType,
+                clientType,
+            );
+            if (!linkedSub) continue;
+
+            const linkedArray = this.parseAsJsonArray(linkedSub.response);
+            if (!linkedArray) continue;
 
             for (const config of linkedArray) {
                 const outbounds = (config as Record<string, unknown>).outbounds;
-                if (!Array.isArray(outbounds)) {
-                    continue;
-                }
+                if (!Array.isArray(outbounds)) continue;
 
                 const filtered = outbounds.filter(
                     (ob: unknown) =>
@@ -282,21 +347,18 @@ export class RootService {
                             (ob as Record<string, unknown>)?.protocol as string,
                         ),
                 );
-
                 extraOutbounds.push(...filtered);
             }
         }
 
         if (extraOutbounds.length > 0) {
-            for (const config of mainArray) {
+            for (const config of current) {
                 const outbounds = (config as Record<string, unknown>).outbounds;
-                if (Array.isArray(outbounds)) {
-                    outbounds.push(...extraOutbounds);
-                }
+                if (Array.isArray(outbounds)) outbounds.push(...extraOutbounds);
             }
         }
 
-        return isString ? JSON.stringify(mainArray) : mainArray;
+        return current;
     }
 
     private async returnWebpage(

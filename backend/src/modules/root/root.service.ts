@@ -218,14 +218,14 @@ export class RootService {
             return response;
         }
 
-        const resolveResult = await this.axiosService.resolveUser(clientIp, { shortUuid });
+        const resolveResult = await this.axiosService.resolveUser({ shortUuid });
         if (!resolveResult.isOk || !resolveResult.response) {
             return response;
         }
 
         const userUuid = resolveResult.response.response.uuid;
 
-        const metadataResult = await this.axiosService.getUserMetadata(clientIp, userUuid);
+        const metadataResult = await this.axiosService.getUserMetadata(userUuid);
         if (!metadataResult.isOk || !metadataResult.response) {
             return response;
         }
@@ -246,7 +246,7 @@ export class RootService {
                 continue;
             }
 
-            const linkedResolve = await this.axiosService.resolveUser(clientIp, { id: linkedId });
+            const linkedResolve = await this.axiosService.resolveUser({ id: linkedId });
             if (!linkedResolve.isOk || !linkedResolve.response) {
                 continue;
             }
@@ -282,6 +282,7 @@ export class RootService {
                             (ob as Record<string, unknown>)?.protocol as string,
                         ),
                 );
+
                 extraOutbounds.push(...filtered);
             }
         }

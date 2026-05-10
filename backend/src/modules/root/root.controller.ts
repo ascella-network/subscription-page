@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { Get, Controller, Res, Req, Param, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Param, Req, Res } from '@nestjs/common';
 
 import {
     REQUEST_TEMPLATE_TYPE_VALUES,

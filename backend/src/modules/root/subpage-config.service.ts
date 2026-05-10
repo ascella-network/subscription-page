@@ -1,14 +1,13 @@
 import { exit } from 'node:process';
 import { Request } from 'express';
 
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
 
 import {
+    SUBPAGE_DEFAULT_CONFIG_UUID,
     SubscriptionPageRawConfigSchema,
     TSubscriptionPageRawConfig,
-    SUBPAGE_DEFAULT_CONFIG_UUID,
 } from '@remnawave/subscription-page-types';
 
 import { decryptUuid, encryptUuid } from '@common/utils/crypt-utils';

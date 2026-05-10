@@ -339,7 +339,6 @@ export class AxiosService implements OnModuleInit {
     }
 
     public async resolveUser(
-        clientIp: string,
         resolveData: ResolveUserCommand.Request,
     ): Promise<ICommandResponse<ResolveUserCommand.Response>> {
         try {
@@ -367,7 +366,6 @@ export class AxiosService implements OnModuleInit {
     }
 
     public async getUserMetadata(
-        clientIp: string,
         uuid: string,
     ): Promise<ICommandResponse<GetUserMetadataCommand.Response>> {
         try {

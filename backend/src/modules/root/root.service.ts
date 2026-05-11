@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { nanoid } from 'nanoid';
 import { createHash } from 'node:crypto';
+import * as yaml from 'js-yaml';
+import { nanoid } from 'nanoid';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -8,9 +9,9 @@ import { JwtService } from '@nestjs/jwt';
 
 import { TRequestTemplateTypeKeys } from '@remnawave/backend-contract';
 
+import { canParseJSON } from '@common/helpers/can-parse-json';
 import { AxiosService } from '@common/axios/axios.service';
 import { IGNORED_HEADERS } from '@common/constants';
-import { canParseJSON } from '@common/helpers/can-parse-json';
 import { sanitizeUsername } from '@common/utils';
 
 import { SubpageConfigService } from './subpage-config.service';
@@ -123,6 +124,7 @@ export class RootService {
                 req.headers,
                 !!clientType,
                 clientType,
+                subscriptionDataResponse.headers['content-type'],
             );
 
             if (subscriptionDataResponse.headers) {
@@ -205,8 +207,9 @@ export class RootService {
     private readonly FILTERED_OUTBOUND_PROTOCOLS = new Set(['blackhole', 'freedom', 'loopback']);
 
     /**
-     * Collects outbounds from all linked subscriptions (excluding DIRECT/BLOCK tags)
-     * and injects them into every config object of the main subscription array.
+     * Dispatches merge logic based on content-type:
+     * - application/json  → JSON outbounds / hosts merge
+     * - text/yaml (Clash) → proxies array merge
      */
     private async mergeLinkedSubscriptions(
         clientIp: string,
@@ -215,36 +218,33 @@ export class RootService {
         headers: NodeJS.Dict<string | string[]>,
         withClientType: boolean,
         clientType?: TRequestTemplateTypeKeys,
+        contentType?: string,
     ): Promise<unknown> {
-        const isString = typeof response === 'string';
-        const mainArray = this.parseAsJsonArray(response);
-
-        if (!mainArray) {
-            return response;
-        }
-
         const resolveResult = await this.axiosService.resolveUser({ shortUuid });
-        if (!resolveResult.isOk || !resolveResult.response) {
-            return response;
-        }
+        if (!resolveResult.isOk || !resolveResult.response) return response;
 
         const userUuid = resolveResult.response.response.uuid;
 
         const metadataResult = await this.axiosService.getUserMetadata(userUuid);
-        if (!metadataResult.isOk || !metadataResult.response) {
-            return response;
-        }
+        if (!metadataResult.isOk || !metadataResult.response) return response;
 
         this.logger.log(`Metadata: ${JSON.stringify(metadataResult.response.response.metadata)}`);
 
         const metadata = metadataResult.response.response.metadata as Record<string, unknown>;
         const linkedSubs = metadata?.linked_subs;
 
-        if (!Array.isArray(linkedSubs) || linkedSubs.length === 0) {
-            return response;
-        }
+        if (!Array.isArray(linkedSubs) || linkedSubs.length === 0) return response;
 
         const args = [clientIp, linkedSubs, headers, withClientType, clientType] as const;
+
+        if (this.isYamlContentType(contentType)) {
+            return this.mergeByYamlProxies(...args, response);
+        }
+
+        const isString = typeof response === 'string';
+        const mainArray = this.parseAsJsonArray(response);
+
+        if (!mainArray) return response;
 
         let result: unknown[] = [...mainArray];
 
@@ -257,6 +257,105 @@ export class RootService {
         }
 
         return isString ? JSON.stringify(result) : result;
+    }
+
+    /** Returns true when the content-type signals a YAML/Clash subscription. */
+    private isYamlContentType(contentType?: string): boolean {
+        if (!contentType) return false;
+        const ct = contentType.toLowerCase();
+        return ct.includes('yaml') || ct.includes('x-yaml') || ct.includes('text/yaml');
+    }
+
+    /**
+     * Parses a YAML string and returns the document object, or null if parsing fails
+     * or the response is not a string.
+     */
+    private parseAsYamlDoc(response: unknown): Record<string, unknown> | null {
+        if (typeof response !== 'string') return null;
+        try {
+            const doc = yaml.load(response);
+            if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+                return doc as Record<string, unknown>;
+            }
+        } catch {
+            // not valid yaml
+        }
+        return null;
+    }
+
+    /** Built-in Clash keywords that are not real proxy names and must not be injected into groups. */
+    private readonly CLASH_BUILTIN_KEYWORDS = new Set(['DIRECT', 'GLOBAL', 'PASS', 'REJECT']);
+
+    /**
+     * Collects `proxies` entries from all linked YAML subscriptions,
+     * injects them into the main Clash config's proxies array,
+     * and appends their names to every proxy-group that contains real proxies.
+     */
+    private async mergeByYamlProxies(
+        clientIp: string,
+        linkedSubs: unknown[],
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType: TRequestTemplateTypeKeys | undefined,
+        response: unknown,
+    ): Promise<unknown> {
+        const mainDoc = this.parseAsYamlDoc(response);
+        if (!mainDoc) return response;
+
+        if (!Array.isArray(mainDoc.proxies)) {
+            mainDoc.proxies = [];
+        }
+
+        const newProxyNames: string[] = [];
+
+        for (const linkedId of linkedSubs) {
+            if (typeof linkedId !== 'number') continue;
+
+            const linkedSub = await this.fetchLinkedSub(
+                clientIp,
+                linkedId,
+                headers,
+                withClientType,
+                clientType,
+            );
+            if (!linkedSub) continue;
+
+            const linkedDoc = this.parseAsYamlDoc(linkedSub.response);
+            if (!linkedDoc || !Array.isArray(linkedDoc.proxies)) continue;
+
+            for (const proxy of linkedDoc.proxies) {
+                (mainDoc.proxies as unknown[]).push(proxy);
+
+                const name = (proxy as Record<string, unknown>)?.name;
+                if (typeof name === 'string') newProxyNames.push(name);
+            }
+        }
+
+        if (newProxyNames.length > 0) {
+            this.injectNamesIntoProxyGroups(mainDoc, newProxyNames);
+        }
+
+        return yaml.dump(mainDoc, { lineWidth: -1 });
+    }
+
+    /**
+     * Pushes proxy names into every proxy-group that already contains
+     * at least one non-builtin entry (i.e. a real proxy reference).
+     */
+    private injectNamesIntoProxyGroups(doc: Record<string, unknown>, names: string[]): void {
+        if (!Array.isArray(doc['proxy-groups'])) return;
+
+        for (const group of doc['proxy-groups'] as Record<string, unknown>[]) {
+            if (!Array.isArray(group.proxies)) continue;
+
+            const hasRealProxy = (group.proxies as unknown[]).some(
+                (p) => typeof p === 'string' && !this.CLASH_BUILTIN_KEYWORDS.has(p),
+            );
+
+            if (hasRealProxy) {
+                (group.proxies as string[]).push(...names);
+            }
+        }
     }
 
     /** Fetches subscription for each linkedId and returns its short UUID, or null on failure. */

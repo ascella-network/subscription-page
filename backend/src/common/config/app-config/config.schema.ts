@@ -35,11 +35,19 @@ export const configSchema = z
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         INTERNAL_JWT_SECRET: z.string(),
         EGAMES_COOKIE: z.optional(z.string()),
-        MERGE_HOSTS: z
+        MERGE_MIHOMO: z
             .string()
             .default('false')
             .transform((val) => val === 'true'),
-        MERGE_OUTBOUNDS: z
+        MERGE_BASE64: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true'),
+        MERGE_XRAY_HOSTS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true'),
+        MERGE_XRAY_OUTBOUNDS: z
             .string()
             .default('false')
             .transform((val) => val === 'true'),

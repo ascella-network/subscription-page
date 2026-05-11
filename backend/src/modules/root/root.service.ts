@@ -23,8 +23,10 @@ export class RootService {
     private readonly isMarzbanLegacyLinkEnabled: boolean;
     private readonly marzbanSecretKeys: string[];
     private readonly mlDropRevokedSubscriptions: boolean;
-    private readonly mergeHosts: boolean;
-    private readonly mergeOutbounds: boolean;
+    private readonly mergeMihomo: boolean;
+    private readonly mergeBase64: boolean;
+    private readonly mergeXrayHosts: boolean;
+    private readonly mergeXrayOutbounds: boolean;
     constructor(
         private readonly configService: ConfigService,
         private readonly jwtService: JwtService,
@@ -46,8 +48,10 @@ export class RootService {
             this.marzbanSecretKeys = [];
         }
 
-        this.mergeHosts = this.configService.getOrThrow<boolean>('MERGE_HOSTS');
-        this.mergeOutbounds = this.configService.getOrThrow<boolean>('MERGE_OUTBOUNDS');
+        this.mergeMihomo = this.configService.getOrThrow<boolean>('MERGE_MIHOMO');
+        this.mergeBase64 = this.configService.getOrThrow<boolean>('MERGE_BASE64');
+        this.mergeXrayHosts = this.configService.getOrThrow<boolean>('MERGE_XRAY_HOSTS');
+        this.mergeXrayOutbounds = this.configService.getOrThrow<boolean>('MERGE_XRAY_OUTBOUNDS');
     }
 
     public async serveSubscriptionPage(
@@ -238,7 +242,13 @@ export class RootService {
         const args = [clientIp, linkedSubs, headers, withClientType, clientType] as const;
 
         if (this.isYamlContentType(contentType)) {
+            if (!this.mergeMihomo) return response;
             return this.mergeByYamlProxies(...args, response);
+        }
+
+        if (typeof response === 'string' && this.isBase64Subscription(response)) {
+            if (!this.mergeBase64) return response;
+            return this.mergeByBase64Lines(...args, response);
         }
 
         const isString = typeof response === 'string';
@@ -248,15 +258,76 @@ export class RootService {
 
         let result: unknown[] = [...mainArray];
 
-        if (this.mergeOutbounds) {
+        if (this.mergeXrayOutbounds) {
             result = await this.mergeByOutbounds(...args, result);
         }
 
-        if (this.mergeHosts) {
+        if (this.mergeXrayHosts) {
             result = await this.mergeByHosts(...args, result);
         }
 
         return isString ? JSON.stringify(result) : result;
+    }
+
+    /**
+     * Returns true when the string is valid base64 that decodes to
+     * newline-separated proxy links (e.g. vless://, vmess://, trojan://).
+     */
+    private isBase64Subscription(response: unknown): boolean {
+        if (typeof response !== 'string') return false;
+        const trimmed = response.trim();
+        if (trimmed.length === 0) return false;
+        try {
+            const decoded = Buffer.from(trimmed, 'base64').toString('utf-8');
+            return decoded.includes('://');
+        } catch {
+            return false;
+        }
+    }
+
+    /** Decodes a base64 subscription string into an array of non-empty proxy lines. */
+    private decodeBase64Lines(response: string): string[] {
+        const decoded = Buffer.from(response.trim(), 'base64').toString('utf-8');
+        return decoded.split('\n').filter((line) => line.trim().length > 0);
+    }
+
+    /**
+     * Decodes the main base64 subscription, appends proxy lines from each linked
+     * subscription (also decoding base64 if needed), then re-encodes to base64.
+     */
+    private async mergeByBase64Lines(
+        clientIp: string,
+        linkedSubs: unknown[],
+        headers: NodeJS.Dict<string | string[]>,
+        withClientType: boolean,
+        clientType: TRequestTemplateTypeKeys | undefined,
+        response: string,
+    ): Promise<string> {
+        const mainLines = this.decodeBase64Lines(response);
+
+        for (const linkedId of linkedSubs) {
+            if (typeof linkedId !== 'number') continue;
+
+            const linkedSub = await this.fetchLinkedSub(
+                clientIp,
+                linkedId,
+                headers,
+                withClientType,
+                clientType,
+            );
+            if (!linkedSub) continue;
+
+            const linkedResponse = linkedSub.response;
+            if (typeof linkedResponse !== 'string') continue;
+
+            const lines = this.isBase64Subscription(linkedResponse)
+                ? this.decodeBase64Lines(linkedResponse)
+                : linkedResponse.split('\n').filter((l) => l.trim().length > 0);
+
+            mainLines.push(...lines);
+        }
+
+        return Buffer.from(mainLines.join('\n'), 'utf-8').toString('base64');
     }
 
     /** Returns true when the content-type signals a YAML/Clash subscription. */

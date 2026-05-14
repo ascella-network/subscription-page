@@ -481,7 +481,7 @@ export class RootService {
         return merged;
     }
 
-    /** Injects outbounds from linked subscriptions into each config of the current array (MERGE_OUTBOUNDS=true). */
+    /** Injects outbounds from linked subscriptions into each config of the current array (MERGE_XRAY_OUTBOUNDS=true). */
     private async mergeByOutbounds(
         clientIp: string,
         linkedSubs: unknown[],
@@ -490,6 +490,7 @@ export class RootService {
         clientType: TRequestTemplateTypeKeys | undefined,
         current: unknown[],
     ): Promise<unknown[]> {
+        const seenTags = new Set<string>();
         const extraOutbounds: unknown[] = [];
 
         for (const linkedId of linkedSubs) {
@@ -511,13 +512,20 @@ export class RootService {
                 const outbounds = (config as Record<string, unknown>).outbounds;
                 if (!Array.isArray(outbounds)) continue;
 
-                const filtered = outbounds.filter(
-                    (ob: unknown) =>
-                        !this.FILTERED_OUTBOUND_PROTOCOLS.has(
-                            (ob as Record<string, unknown>)?.protocol as string,
-                        ),
-                );
-                extraOutbounds.push(...filtered);
+                for (const ob of outbounds) {
+                    const record = ob as Record<string, unknown>;
+
+                    if (this.FILTERED_OUTBOUND_PROTOCOLS.has(record?.protocol as string)) continue;
+
+                    const tag = record?.tag as string | undefined;
+                    if (tag && seenTags.has(tag)) {
+                        this.logger.debug(`Skipping duplicate outbound tag: "${tag}"`);
+                        continue;
+                    }
+                    if (tag) seenTags.add(tag);
+
+                    extraOutbounds.push(ob);
+                }
             }
         }
 

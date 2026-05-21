@@ -208,7 +208,12 @@ export class RootService {
     }
 
     /** Tags from linked subscriptions that must not be injected into the main config. */
-    private readonly FILTERED_OUTBOUND_PROTOCOLS = new Set(['blackhole', 'freedom', 'loopback']);
+    private readonly FILTERED_OUTBOUND_PROTOCOLS = new Set([
+        'blackhole',
+        'dns',
+        'freedom',
+        'loopback',
+    ]);
 
     /**
      * Dispatches merge logic based on content-type:
@@ -481,6 +486,42 @@ export class RootService {
         return merged;
     }
 
+    private readonly NULL_UUID = '00000000-0000-0000-0000-000000000000';
+
+    /**
+     * Returns true when the outbound is a template placeholder —
+     * has `settings.vnext` with a user whose id is the null UUID.
+     */
+    private isTemplateOutbound(ob: unknown): boolean {
+        const settings = (ob as Record<string, unknown>)?.settings as
+            | Record<string, unknown>
+            | undefined;
+        const vnext = settings?.vnext;
+        if (!Array.isArray(vnext)) return false;
+
+        return vnext.some((entry: unknown) => {
+            const users = (entry as Record<string, unknown>)?.users;
+            if (!Array.isArray(users)) return false;
+            return users.some(
+                (u: unknown) => (u as Record<string, unknown>)?.id === this.NULL_UUID,
+            );
+        });
+    }
+
+    /** Collects all outbound tags already present in a config's outbounds array. */
+    private collectExistingTags(config: unknown): Set<string> {
+        const tags = new Set<string>();
+        const outbounds = (config as Record<string, unknown>).outbounds;
+        if (!Array.isArray(outbounds)) return tags;
+
+        for (const ob of outbounds) {
+            const tag = (ob as Record<string, unknown>)?.tag as string | undefined;
+            if (tag) tags.add(tag);
+        }
+
+        return tags;
+    }
+
     /** Injects outbounds from linked subscriptions into each config of the current array (MERGE_XRAY_OUTBOUNDS=true). */
     private async mergeByOutbounds(
         clientIp: string,
@@ -517,6 +558,11 @@ export class RootService {
 
                     if (this.FILTERED_OUTBOUND_PROTOCOLS.has(record?.protocol as string)) continue;
 
+                    if (this.isTemplateOutbound(ob)) {
+                        this.logger.debug(`Skipping template outbound with null UUID`);
+                        continue;
+                    }
+
                     const tag = record?.tag as string | undefined;
                     if (tag && seenTags.has(tag)) {
                         this.logger.debug(`Skipping duplicate outbound tag: "${tag}"`);
@@ -531,8 +577,18 @@ export class RootService {
 
         if (extraOutbounds.length > 0) {
             for (const config of current) {
+                const mainTags = this.collectExistingTags(config);
                 const outbounds = (config as Record<string, unknown>).outbounds;
-                if (Array.isArray(outbounds)) outbounds.push(...extraOutbounds);
+                if (!Array.isArray(outbounds)) continue;
+
+                for (const ob of extraOutbounds) {
+                    const tag = (ob as Record<string, unknown>)?.tag as string | undefined;
+                    if (tag && mainTags.has(tag)) {
+                        this.logger.debug(`Skipping outbound tag already in main config: "${tag}"`);
+                        continue;
+                    }
+                    outbounds.push(ob);
+                }
             }
         }
 

@@ -1,17 +1,17 @@
 services:
   ascella-subscription-page:
-    image: ascella/subscription-page:latest
+    image: ascellanetwork/subscription-page:latest
     container_name: ascella-subscription-page
     hostname: ascella-subscription-page
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     ports:
       - '127.0.0.1:3010:3010'
     networks:
-      - ascella-network
+      - remnawave-network
 
 networks:
-  ascella-network:
+  remnawave-network:
     driver: bridge
     external: true

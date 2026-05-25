@@ -98,7 +98,7 @@ async function bootstrap(): Promise<void> {
 
     app.use(
         morgan(
-            ':remote-addr - ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"',
+            ':remote-addr - ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" os=:x-device-os',
             {
                 skip: (req) => req?.url?.startsWith('/assets') ?? false,
             },

@@ -6,6 +6,10 @@ morgan.token('remote-addr', (req: { clientIp: string } & Request) => {
     return req.clientIp;
 });
 
+morgan.token('x-device-os', (req: Request) => {
+    return (req.headers['x-device-os'] as string | undefined) ?? '-';
+});
+
 export const getRealIp = function (
     req: { clientIp: string } & Request,
     res: Response,

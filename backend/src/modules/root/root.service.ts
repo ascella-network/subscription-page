@@ -27,6 +27,7 @@ export class RootService {
     private readonly mergeBase64: boolean;
     private readonly mergeXrayHosts: boolean;
     private readonly mergeXrayOutbounds: boolean;
+    private readonly overrideFingerprintPerOs: boolean;
     constructor(
         private readonly configService: ConfigService,
         private readonly jwtService: JwtService,
@@ -52,6 +53,9 @@ export class RootService {
         this.mergeBase64 = this.configService.getOrThrow<boolean>('MERGE_BASE64');
         this.mergeXrayHosts = this.configService.getOrThrow<boolean>('MERGE_XRAY_HOSTS');
         this.mergeXrayOutbounds = this.configService.getOrThrow<boolean>('MERGE_XRAY_OUTBOUNDS');
+        this.overrideFingerprintPerOs = this.configService.getOrThrow<boolean>(
+            'OVERRIDE_FINGERPRINT_PER_OS',
+        );
     }
 
     public async serveSubscriptionPage(
@@ -130,6 +134,22 @@ export class RootService {
                 clientType,
                 subscriptionDataResponse.headers['content-type'],
             );
+
+            if (this.overrideFingerprintPerOs) {
+                const os = this.detectClientOs(req.headers);
+                const fp = this.getFingerprintForOs(os);
+                const contentType = subscriptionDataResponse.headers['content-type'];
+
+                if (!this.isYamlContentType(contentType)) {
+                    this.logger.debug(
+                        `Overriding fingerprint for OS "${os ?? 'unknown'}" → "${fp}"`,
+                    );
+                    subscriptionDataResponse.response = this.applyFingerprintOverride(
+                        subscriptionDataResponse.response,
+                        fp,
+                    );
+                }
+            }
 
             if (subscriptionDataResponse.headers) {
                 Object.entries(subscriptionDataResponse.headers)
@@ -214,6 +234,110 @@ export class RootService {
         'freedom',
         'loopback',
     ]);
+
+    /** OS key (lowercase) → Reality fingerprint value applied to outbounds/links. */
+    private readonly OS_TO_FINGERPRINT: Record<string, string> = {
+        ios: 'ios',
+        android: 'android',
+        macos: 'safari',
+        windows: 'firefox',
+        linux: 'firefox',
+    };
+
+    /** Detects client OS from x-device-os header first, then falls back to User-Agent. */
+    private detectClientOs(headers: NodeJS.Dict<string | string[]>): string | null {
+        const deviceOsRaw = headers['x-device-os'];
+        const deviceOs = Array.isArray(deviceOsRaw) ? deviceOsRaw[0] : deviceOsRaw;
+
+        if (deviceOs) {
+            const normalized = deviceOs.toLowerCase();
+            for (const key of Object.keys(this.OS_TO_FINGERPRINT)) {
+                if (normalized.includes(key)) return key;
+            }
+        }
+
+        const uaRaw = headers['user-agent'];
+        const ua = Array.isArray(uaRaw) ? uaRaw[0] : uaRaw;
+        if (!ua) return null;
+
+        if (/iPhone|iPad|iPod|\bios\b/i.test(ua)) return 'ios';
+        if (/Android/i.test(ua)) return 'android';
+        if (/Mac OS X|Macintosh|darwin|\bmacos\b/i.test(ua)) return 'macos';
+        if (/Windows|\bwin(?:32|64)\b/i.test(ua)) return 'windows';
+        if (/Linux|X11/i.test(ua)) return 'linux';
+
+        return null;
+    }
+
+    /** Fallback fingerprint when OS cannot be detected or has no explicit mapping. */
+    private readonly DEFAULT_FINGERPRINT = 'firefox';
+
+    /** Returns the configured fingerprint for a given OS key, falling back to firefox. */
+    private getFingerprintForOs(os: string | null): string {
+        if (!os) return this.DEFAULT_FINGERPRINT;
+        return this.OS_TO_FINGERPRINT[os] ?? this.DEFAULT_FINGERPRINT;
+    }
+
+    /**
+     * Mutates each config's outbounds: sets streamSettings.realitySettings.fingerprint
+     * to the given value when realitySettings is present.
+     */
+    private overrideFingerprintInJsonConfigs(configs: unknown[], fp: string): unknown[] {
+        for (const config of configs) {
+            const outbounds = (config as Record<string, unknown>)?.outbounds;
+            if (!Array.isArray(outbounds)) continue;
+
+            for (const ob of outbounds) {
+                const streamSettings = (ob as Record<string, unknown>)?.streamSettings as
+                    | Record<string, unknown>
+                    | undefined;
+                const realitySettings = streamSettings?.realitySettings as
+                    | Record<string, unknown>
+                    | undefined;
+                if (realitySettings) {
+                    realitySettings.fingerprint = fp;
+                }
+            }
+        }
+        return configs;
+    }
+
+    /** Replaces the `fp` query parameter in a vless:// link; returns line unchanged otherwise. */
+    private overrideFingerprintInVlessLink(line: string, fp: string): string {
+        if (!line.startsWith('vless://')) return line;
+
+        try {
+            const url = new URL(line);
+            url.searchParams.set('fp', fp);
+            return url.toString();
+        } catch {
+            return line;
+        }
+    }
+
+    /** Decodes base64 subscription, rewrites fp= in every vless:// line, re-encodes back. */
+    private overrideFingerprintInBase64(response: string, fp: string): string {
+        const lines = this.decodeBase64Lines(response);
+        const updated = lines.map((line) => this.overrideFingerprintInVlessLink(line, fp));
+        return Buffer.from(updated.join('\n'), 'utf-8').toString('base64');
+    }
+
+    /**
+     * Dispatches fingerprint override based on response shape:
+     * base64 → vless links rewrite, JSON array/string → outbounds rewrite.
+     */
+    private applyFingerprintOverride(response: unknown, fp: string): unknown {
+        if (typeof response === 'string' && this.isBase64Subscription(response)) {
+            return this.overrideFingerprintInBase64(response, fp);
+        }
+
+        const isString = typeof response === 'string';
+        const arr = this.parseAsJsonArray(response);
+        if (!arr) return response;
+
+        const updated = this.overrideFingerprintInJsonConfigs(arr, fp);
+        return isString ? JSON.stringify(updated) : updated;
+    }
 
     /**
      * Dispatches merge logic based on content-type:

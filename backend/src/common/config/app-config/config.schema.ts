@@ -51,6 +51,10 @@ export const configSchema = z
             .string()
             .default('false')
             .transform((val) => val === 'true'),
+        OVERRIDE_FINGERPRINT_PER_OS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true'),
     })
     .superRefine((data, ctx) => {
         if (

@@ -510,6 +510,7 @@ export class RootService {
             mainDoc.proxies = [];
         }
 
+        const newProxies: unknown[] = [];
         const newProxyNames: string[] = [];
 
         for (const linkedId of linkedSubs) {
@@ -528,18 +529,46 @@ export class RootService {
             if (!linkedDoc || !Array.isArray(linkedDoc.proxies)) continue;
 
             for (const proxy of linkedDoc.proxies) {
-                (mainDoc.proxies as unknown[]).push(proxy);
+                newProxies.push(proxy);
 
                 const name = (proxy as Record<string, unknown>)?.name;
                 if (typeof name === 'string') newProxyNames.push(name);
             }
         }
 
+        (mainDoc.proxies as unknown[]).push(...newProxies);
+
+        this.injectProxiesIntoProviders(mainDoc, newProxies);
+
         if (this.mergeMihomoProxyGroups && newProxyNames.length > 0) {
             this.injectNamesIntoProxyGroups(mainDoc, newProxyNames);
         }
 
         return yaml.dump(mainDoc, { lineWidth: -1 });
+    }
+
+    /**
+     * Injects merged proxy nodes into every inline proxy-provider's payload.
+     * Remnawave fills these payloads at generation time, so linked proxies must be
+     * added here too; each provider's own filter/exclude-filter then matches them.
+     */
+    private injectProxiesIntoProviders(doc: Record<string, unknown>, proxies: unknown[]): void {
+        if (proxies.length === 0) return;
+
+        const providers = doc['proxy-providers'];
+        if (!providers || typeof providers !== 'object' || Array.isArray(providers)) return;
+
+        for (const provider of Object.values(
+            providers as Record<string, Record<string, unknown>>,
+        )) {
+            if (!provider || provider.type !== 'inline') continue;
+
+            if (!Array.isArray(provider.payload)) {
+                provider.payload = [];
+            }
+
+            (provider.payload as unknown[]).push(...proxies);
+        }
     }
 
     /**

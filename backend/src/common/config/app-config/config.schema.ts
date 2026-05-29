@@ -39,6 +39,10 @@ export const configSchema = z
             .string()
             .default('false')
             .transform((val) => val === 'true'),
+        MERGE_MIHOMO_PROXY_GROUPS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true'),
         MERGE_BASE64: z
             .string()
             .default('false')

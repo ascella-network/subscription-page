@@ -24,6 +24,7 @@ export class RootService {
     private readonly marzbanSecretKeys: string[];
     private readonly mlDropRevokedSubscriptions: boolean;
     private readonly mergeMihomo: boolean;
+    private readonly mergeMihomoProxyGroups: boolean;
     private readonly mergeBase64: boolean;
     private readonly mergeXrayHosts: boolean;
     private readonly mergeXrayOutbounds: boolean;
@@ -50,6 +51,9 @@ export class RootService {
         }
 
         this.mergeMihomo = this.configService.getOrThrow<boolean>('MERGE_MIHOMO');
+        this.mergeMihomoProxyGroups = this.configService.getOrThrow<boolean>(
+            'MERGE_MIHOMO_PROXY_GROUPS',
+        );
         this.mergeBase64 = this.configService.getOrThrow<boolean>('MERGE_BASE64');
         this.mergeXrayHosts = this.configService.getOrThrow<boolean>('MERGE_XRAY_HOSTS');
         this.mergeXrayOutbounds = this.configService.getOrThrow<boolean>('MERGE_XRAY_OUTBOUNDS');
@@ -487,9 +491,9 @@ export class RootService {
     private readonly CLASH_BUILTIN_KEYWORDS = new Set(['DIRECT', 'GLOBAL', 'PASS', 'REJECT']);
 
     /**
-     * Collects `proxies` entries from all linked YAML subscriptions,
-     * injects them into the main Clash config's proxies array,
-     * and appends their names to every proxy-group that contains real proxies.
+     * Collects `proxies` entries from all linked YAML subscriptions and injects them
+     * into the main Clash config's proxies array. Optionally appends proxy names to
+     * proxy-groups when MERGE_MIHOMO_PROXY_GROUPS is enabled.
      */
     private async mergeByYamlProxies(
         clientIp: string,
@@ -531,7 +535,7 @@ export class RootService {
             }
         }
 
-        if (newProxyNames.length > 0) {
+        if (this.mergeMihomoProxyGroups && newProxyNames.length > 0) {
             this.injectNamesIntoProxyGroups(mainDoc, newProxyNames);
         }
 

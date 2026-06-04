@@ -59,6 +59,15 @@ export const configSchema = z
             .string()
             .default('false')
             .transform((val) => val === 'true'),
+        MERGE_HOSTS_POSITION: z
+            .string()
+            .default('end')
+            .transform((v) => v.toLowerCase())
+            .refine((v) => ['end', 'middle', 'start'].includes(v), 'Must be start, middle or end'),
+        APPEND_TRAFFIC_LEFT: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true'),
     })
     .superRefine((data, ctx) => {
         if (

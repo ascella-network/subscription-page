@@ -29,6 +29,8 @@ export class RootService {
     private readonly mergeXrayHosts: boolean;
     private readonly mergeXrayOutbounds: boolean;
     private readonly overrideFingerprintPerOs: boolean;
+    private readonly mergeHostsPosition: string;
+    private readonly appendTrafficLeft: boolean;
     constructor(
         private readonly configService: ConfigService,
         private readonly jwtService: JwtService,
@@ -60,6 +62,8 @@ export class RootService {
         this.overrideFingerprintPerOs = this.configService.getOrThrow<boolean>(
             'OVERRIDE_FINGERPRINT_PER_OS',
         );
+        this.mergeHostsPosition = this.configService.getOrThrow<string>('MERGE_HOSTS_POSITION');
+        this.appendTrafficLeft = this.configService.getOrThrow<boolean>('APPEND_TRAFFIC_LEFT');
     }
 
     public async serveSubscriptionPage(
@@ -437,6 +441,7 @@ export class RootService {
         response: string,
     ): Promise<string> {
         const mainLines = this.decodeBase64Lines(response);
+        const linkedLines: string[] = [];
 
         for (const linkedId of linkedSubs) {
             if (typeof linkedId !== 'number') continue;
@@ -457,10 +462,15 @@ export class RootService {
                 ? this.decodeBase64Lines(linkedResponse)
                 : linkedResponse.split('\n').filter((l) => l.trim().length > 0);
 
-            mainLines.push(...lines);
+            const suffix = this.getTrafficLeftSuffix(linkedSub.headers as Record<string, unknown>);
+
+            for (const line of lines) {
+                linkedLines.push(suffix ? this.appendTrafficToVlessLink(line, suffix) : line);
+            }
         }
 
-        return Buffer.from(mainLines.join('\n'), 'utf-8').toString('base64');
+        const merged = this.insertByPosition(mainLines, linkedLines);
+        return Buffer.from(merged.join('\n'), 'utf-8').toString('base64');
     }
 
     /** Returns true when the content-type signals a YAML/Clash subscription. */
@@ -528,11 +538,18 @@ export class RootService {
             const linkedDoc = this.parseAsYamlDoc(linkedSub.response);
             if (!linkedDoc || !Array.isArray(linkedDoc.proxies)) continue;
 
+            const suffix = this.getTrafficLeftSuffix(linkedSub.headers as Record<string, unknown>);
+
             for (const proxy of linkedDoc.proxies) {
+                const record = proxy as Record<string, unknown>;
+
+                if (suffix && typeof record.name === 'string') {
+                    record.name += suffix;
+                }
+
                 newProxies.push(proxy);
 
-                const name = (proxy as Record<string, unknown>)?.name;
-                if (typeof name === 'string') newProxyNames.push(name);
+                if (typeof record.name === 'string') newProxyNames.push(record.name);
             }
         }
 
@@ -586,7 +603,7 @@ export class RootService {
             );
 
             if (hasRealProxy) {
-                (group.proxies as string[]).push(...names);
+                group.proxies = this.insertByPosition(group.proxies as string[], names);
             }
         }
     }
@@ -613,7 +630,51 @@ export class RootService {
         return linkedSub ?? null;
     }
 
-    /** Merges full host configs from linked subscriptions into the current array (MERGE_HOSTS=true). */
+    /**
+     * Returns the formatted traffic-left suffix (with a leading space) from the
+     * traffic-left header, or null when the feature is disabled, the header is empty,
+     * or the value is zero (treated as unlimited).
+     */
+    private getTrafficLeftSuffix(headers: Record<string, unknown> | undefined): string | null {
+        if (!this.appendTrafficLeft || !headers) return null;
+
+        const raw = headers['traffic-left'];
+        const value = Array.isArray(raw) ? raw[0] : raw;
+        if (typeof value !== 'string' || value.trim().length === 0) return null;
+
+        const numeric = parseFloat(value.replace(',', '.'));
+        if (numeric === 0) return null;
+
+        return ` ${value.trim()}`;
+    }
+
+    /** Appends the suffix to the URL-encoded #fragment (remark) of a proxy link. */
+    private appendTrafficToVlessLink(line: string, suffix: string): string {
+        const hashIdx = line.indexOf('#');
+        if (hashIdx === -1) return line;
+
+        const base = line.slice(0, hashIdx);
+        const remark = decodeURIComponent(line.slice(hashIdx + 1));
+        return `${base}#${encodeURIComponent(remark + suffix)}`;
+    }
+
+    /** Inserts items into the current array at the position set by MERGE_HOSTS_POSITION. */
+    private insertByPosition<T>(current: T[], items: T[]): T[] {
+        if (items.length === 0) return current;
+
+        switch (this.mergeHostsPosition) {
+            case 'start':
+                return [...items, ...current];
+            case 'middle': {
+                const mid = Math.floor(current.length / 2);
+                return [...current.slice(0, mid), ...items, ...current.slice(mid)];
+            }
+            default:
+                return [...current, ...items];
+        }
+    }
+
+    /** Merges full host configs from linked subscriptions into the current array (MERGE_XRAY_HOSTS=true). */
     private async mergeByHosts(
         clientIp: string,
         linkedSubs: unknown[],
@@ -622,7 +683,7 @@ export class RootService {
         clientType: TRequestTemplateTypeKeys | undefined,
         current: unknown[],
     ): Promise<unknown[]> {
-        const merged = [...current];
+        const linkedConfigs: unknown[] = [];
 
         for (const linkedId of linkedSubs) {
             if (typeof linkedId !== 'number') continue;
@@ -637,10 +698,22 @@ export class RootService {
             if (!linkedSub) continue;
 
             const linkedArray = this.parseAsJsonArray(linkedSub.response);
-            if (linkedArray) merged.push(...linkedArray);
+            if (!linkedArray) continue;
+
+            const suffix = this.getTrafficLeftSuffix(linkedSub.headers as Record<string, unknown>);
+
+            for (const config of linkedArray) {
+                if (suffix) {
+                    const record = config as Record<string, unknown>;
+                    if (typeof record.remarks === 'string') {
+                        record.remarks += suffix;
+                    }
+                }
+                linkedConfigs.push(config);
+            }
         }
 
-        return merged;
+        return this.insertByPosition(current, linkedConfigs);
     }
 
     private readonly NULL_UUID = '00000000-0000-0000-0000-000000000000';

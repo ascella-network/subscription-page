@@ -123,8 +123,9 @@ async function bootstrap(): Promise<void> {
 
     app.enableShutdownHooks();
 
-    await app.listen(Number(config.getOrThrow<string>('APP_PORT')));
+    const appPort = Number(config.getOrThrow<string>('APP_PORT'));
+    await app.listen(appPort);
 
-    logger.info('\n' + (await getStartMessage()) + '\n');
+    logger.info('\n' + (await getStartMessage(appPort)) + '\n');
 }
 void bootstrap();

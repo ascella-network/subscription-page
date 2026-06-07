@@ -63,7 +63,10 @@ export const configSchema = z
             .string()
             .default('end')
             .transform((v) => v.toLowerCase())
-            .refine((v) => ['end', 'middle', 'start'].includes(v), 'Must be start, middle or end'),
+            .refine(
+                (v) => ['end', 'middle', 'start', 'upper_middle'].includes(v),
+                'Must be start, upper_middle, middle or end',
+            ),
         APPEND_TRAFFIC_LEFT: z
             .string()
             .default('false')

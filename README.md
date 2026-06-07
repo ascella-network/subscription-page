@@ -13,7 +13,7 @@ Linked subscriptions are defined in the user's metadata (`linked_subs`). Their p
 | `MERGE_BASE64` | `false` | Merge linked subscriptions for base64-encoded proxy lists. |
 | `MERGE_XRAY_HOSTS` | `false` | Merge full host configs from linked subscriptions into the Xray JSON array. |
 | `MERGE_XRAY_OUTBOUNDS` | `false` | Inject outbounds from linked subscriptions into each config of the Xray JSON array (deduplicated by tag). |
-| `MERGE_HOSTS_POSITION` | `end` | Where to insert merged linked hosts: `start`, `middle` or `end`. |
+| `MERGE_HOSTS_POSITION` | `end` | Where to insert merged linked hosts: `start`, `upper_middle`, `middle` or `end`. |
 
 ### Display tweaks
 

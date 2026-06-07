@@ -665,6 +665,10 @@ export class RootService {
         switch (this.mergeHostsPosition) {
             case 'start':
                 return [...items, ...current];
+            case 'upper_middle': {
+                const insertAt = Math.max(1, Math.floor(current.length / 3));
+                return [...current.slice(0, insertAt), ...items, ...current.slice(insertAt)];
+            }
             case 'middle': {
                 const mid = Math.floor(current.length / 2);
                 return [...current.slice(0, mid), ...items, ...current.slice(mid)];

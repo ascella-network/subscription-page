@@ -18,11 +18,10 @@ export const TimelineBlockRenderer = ({
             active={blocks.length}
             bulletSize={isMobile ? 36 : 44}
             classNames={{
-                root: classes.timelineRoot,
                 item: classes.timelineItem,
                 itemBullet: classes.timelineItemBullet
             }}
-            color="cyan"
+            color="gray"
             lineWidth={2}
         >
             {blocks.map((block, index) => {
@@ -42,7 +41,6 @@ export const TimelineBlockRenderer = ({
                         key={index}
                         title={
                             <Text
-                                c="white"
                                 dangerouslySetInnerHTML={{
                                     __html: getLocalizedText(block.title, currentLang)
                                 }}

@@ -6,7 +6,7 @@ import {
     IconLink,
     IconMessageChatbot
 } from '@tabler/icons-react'
-import { ActionIcon, Button, Group, Image, Stack, Text } from '@mantine/core'
+import { ActionIcon, Box, Button, Group, Image, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useClipboard } from '@mantine/hooks'
 import { modals } from '@mantine/modals'
@@ -16,8 +16,6 @@ import { constructSubscriptionUrl } from '@shared/utils/construct-subscription-u
 import { useSubscription } from '@entities/subscription-info-store'
 import { vibrate } from '@shared/utils/vibrate'
 import { useTranslation } from '@shared/hooks'
-
-import classes from './subscription-link.module.css'
 
 interface IProps {
     hideGetLink: boolean
@@ -37,8 +35,7 @@ export const SubscriptionLinkWidget = ({ supportUrl, hideGetLink }: IProps) => {
     const handleCopy = () => {
         notifications.show({
             title: t(baseTranslations.linkCopied),
-            message: t(baseTranslations.linkCopiedToClipboard),
-            color: 'cyan'
+            message: t(baseTranslations.linkCopiedToClipboard)
         })
         clipboard.copy(subscriptionUrl)
     }
@@ -56,20 +53,15 @@ export const SubscriptionLinkWidget = ({ supportUrl, hideGetLink }: IProps) => {
 
         const { icon: Icon, color } = matchedPlatform
             ? matchedPlatform[1]
-            : { icon: IconMessageChatbot, color: 'cyan' }
+            : { icon: IconMessageChatbot, color: 'var(--mantine-color-dimmed)' }
 
         return (
             <ActionIcon
                 c={color}
                 component="a"
                 href={supportUrl}
-                radius="md"
                 rel="noopener noreferrer"
                 size="xl"
-                style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}
                 target="_blank"
                 variant="default"
             >
@@ -82,25 +74,22 @@ export const SubscriptionLinkWidget = ({ supportUrl, hideGetLink }: IProps) => {
         vibrate('tap')
 
         const subscriptionQrCode = renderSVG(subscriptionUrl, {
-            whiteColor: '#161B22',
-            blackColor: '#22d3ee'
+            whiteColor: '#ffffff',
+            blackColor: '#1a1b1e'
         })
 
         modals.open({
             centered: true,
             title: t(baseTranslations.getLink),
-            classNames: {
-                content: classes.modalContent,
-                header: classes.modalHeader,
-                title: classes.modalTitle
-            },
             children: (
                 <Stack align="center">
-                    <Image
-                        src={`data:image/svg+xml;utf8,${encodeURIComponent(subscriptionQrCode)}`}
-                        style={{ borderRadius: 'var(--mantine-radius-md)' }}
-                    />
-                    <Text c="white" fw={600} size="lg" ta="center">
+                    <Box bg="white" p="xs" style={{ borderRadius: 'var(--mantine-radius-md)' }}>
+                        <Image
+                            src={`data:image/svg+xml;utf8,${encodeURIComponent(subscriptionQrCode)}`}
+                            style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                        />
+                    </Box>
+                    <Text fw={600} size="lg" ta="center">
                         {t(baseTranslations.scanQrCode)}
                     </Text>
                     <Text c="dimmed" size="sm" ta="center">
@@ -109,10 +98,9 @@ export const SubscriptionLinkWidget = ({ supportUrl, hideGetLink }: IProps) => {
 
                     <Button
                         fullWidth
-                        leftSection={<IconCopy />}
+                        leftSection={<IconCopy size={18} />}
                         onClick={handleCopy}
-                        radius="md"
-                        variant="light"
+                        variant="filled"
                     >
                         {t(baseTranslations.copyLink)}
                     </Button>
@@ -124,13 +112,7 @@ export const SubscriptionLinkWidget = ({ supportUrl, hideGetLink }: IProps) => {
     return (
         <Group gap="xs" ml="auto" wrap="nowrap">
             {!hideGetLink && (
-                <ActionIcon
-                    className={classes.actionIcon}
-                    onClick={handleGetLink}
-                    radius="md"
-                    size="xl"
-                    variant="default"
-                >
+                <ActionIcon onClick={handleGetLink} size="xl" variant="default">
                     <IconLink />
                 </ActionIcon>
             )}

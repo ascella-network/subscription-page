@@ -83,14 +83,9 @@ export const MainPageComponent = ({ isMobile, platform }: IMainPageComponentProp
                                     }}
                                 />
                             ) : (
-                                <RemnawaveLogo c="cyan" size={32} />
+                                <RemnawaveLogo c="brand.6" size={32} />
                             )}
-                            <Title
-                                c={hasCustomLogo ? 'white' : 'cyan'}
-                                fw={700}
-                                order={4}
-                                size="lg"
-                            >
+                            <Title fw={600} order={4} size="lg">
                                 {brandName}
                             </Title>
                         </Group>
@@ -109,7 +104,7 @@ export const MainPageComponent = ({ isMobile, platform }: IMainPageComponentProp
                 py="xl"
                 style={{ position: 'relative', zIndex: 1 }}
             >
-                <Stack gap="xl">
+                <Stack className="reveal-stack" gap="xl">
                     {SubscriptionInfoBlockRenderer && (
                         <SubscriptionInfoBlockRenderer isMobile={isMobile} />
                     )}

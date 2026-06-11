@@ -3,18 +3,43 @@
 // import deadFile from 'vite-plugin-deadfile'
 import removeConsole from 'vite-plugin-remove-console'
 import webfontDownload from 'vite-plugin-webfont-dl'
+import { existsSync, readFileSync } from 'node:fs'
 import tsconfigPaths from 'vite-tsconfig-paths'
+import { defineConfig, type Plugin } from 'vite'
 import { ViteEjsPlugin } from 'vite-plugin-ejs'
 import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react-swc'
-import { defineConfig } from 'vite'
 import 'dotenv/config'
+
+// Dev-only: serve the subscription-page config (normally provided by the
+// backend) from frontend/.dev/app-config.json so `npm run start:dev` works
+// without a running panel. Has no effect on builds.
+const devAppConfigPlugin = (): Plugin => ({
+    name: 'dev-app-config',
+    configureServer(server) {
+        server.middlewares.use('/assets/.app-config-v2.json', (_req, res) => {
+            const configPath = fileURLToPath(new URL('./.dev/app-config.json', import.meta.url))
+
+            if (!existsSync(configPath)) {
+                res.statusCode = 404
+                res.end(
+                    'Local dev config missing: put a subscription-page config into frontend/.dev/app-config.json'
+                )
+                return
+            }
+
+            res.setHeader('content-type', 'application/json')
+            res.end(readFileSync(configPath))
+        })
+    }
+})
 
 export default defineConfig({
     plugins: [
         react(),
         tsconfigPaths(),
         removeConsole(),
+        devAppConfigPlugin(),
         webfontDownload(undefined, {}),
         ViteEjsPlugin((viteConfig) => {
             if (process.env.NODE_ENV === 'production') {

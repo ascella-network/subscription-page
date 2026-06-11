@@ -1,5 +1,6 @@
 import { IconArrowsUpDown, IconCalendar, IconCheck, IconUserScan, IconX } from '@tabler/icons-react'
-import { Box, Group, SimpleGrid, Stack, Text, ThemeIcon } from '@mantine/core'
+import { Box, Group, SimpleGrid, Stack, Text } from '@mantine/core'
+import clsx from 'clsx'
 
 import { useSubscription } from '@entities/subscription-info-store'
 import { formatDate } from '@shared/utils/config-parser'
@@ -7,40 +8,26 @@ import { useTranslation } from '@shared/hooks'
 
 import classes from './subscription-info-cards.module.css'
 
-type ColorVariant = 'blue' | 'cyan' | 'green' | 'orange' | 'red' | 'teal' | 'violet' | 'yellow'
+type Tone = 'danger' | 'neutral' | 'success'
 
-const iconColorClasses: Record<ColorVariant, string> = {
-    blue: classes.iconBlue,
-    cyan: classes.iconCyan,
-    green: classes.iconGreen,
-    teal: classes.iconTeal,
-    red: classes.iconRed,
-    yellow: classes.iconYellow,
-    orange: classes.iconOrange,
-    violet: classes.iconViolet
+const toneClasses: Record<Tone, string | undefined> = {
+    neutral: undefined,
+    success: classes.iconTileSuccess,
+    danger: classes.iconTileDanger
 }
 
 interface CardItemProps {
-    color: ColorVariant
     icon: React.ReactNode
     label: string
+    tone?: Tone
     value: string
 }
 
-const CardItem = ({ icon, label, value, color }: CardItemProps) => {
+const CardItem = ({ icon, label, value, tone = 'neutral' }: CardItemProps) => {
     return (
         <Box className={classes.cardItem}>
             <Group gap="xs" wrap="nowrap">
-                <ThemeIcon
-                    className={iconColorClasses[color]}
-                    color={color}
-                    radius="md"
-                    size={36}
-                    style={{ flexShrink: 0 }}
-                    variant="light"
-                >
-                    {icon}
-                </ThemeIcon>
+                <Box className={clsx(classes.iconTile, toneClasses[tone])}>{icon}</Box>
                 <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
                     <Text
                         c="dimmed"
@@ -52,7 +39,7 @@ const CardItem = ({ icon, label, value, color }: CardItemProps) => {
                     >
                         {label}
                     </Text>
-                    <Text c="white" className={classes.value} fw={600} size="sm">
+                    <Text className={classes.value} fw={600} size="sm">
                         {value}
                     </Text>
                 </Stack>
@@ -82,28 +69,25 @@ export const SubscriptionInfoCardsWidget = ({ isMobile: _ }: IProps) => {
     return (
         <SimpleGrid cols={{ base: 1, xs: 1, sm: 2 }} spacing="xs" verticalSpacing="xs">
             <CardItem
-                color="blue"
                 icon={<IconUserScan size={18} />}
                 label={t(baseTranslations.name)}
                 value={user.username}
             />
 
             <CardItem
-                color={isActive ? 'green' : 'red'}
                 icon={isActive ? <IconCheck size={18} /> : <IconX size={18} />}
                 label={t(baseTranslations.status)}
+                tone={isActive ? 'success' : 'danger'}
                 value={statusText}
             />
 
             <CardItem
-                color="orange"
                 icon={<IconCalendar size={18} />}
                 label={t(baseTranslations.expires)}
                 value={formatDate(user.expiresAt, currentLang, baseTranslations)}
             />
 
             <CardItem
-                color="cyan"
                 icon={<IconArrowsUpDown size={18} />}
                 label={t(baseTranslations.bandwidth)}
                 value={bandwidthValue}

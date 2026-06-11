@@ -6,8 +6,8 @@ export const theme = createTheme({
     components,
     cursorType: 'pointer',
     fontFamily:
-        'Montserrat, Vazirmatn, Apple Color Emoji, Noto Sans SC, Twemoji Country Flags, sans-serif',
-    fontFamilyMonospace: 'Fira Mono, monospace',
+        'Geist, Vazirmatn, Apple Color Emoji, Noto Sans SC, Twemoji Country Flags, sans-serif',
+    fontFamilyMonospace: 'Geist Mono, ui-monospace, monospace',
     breakpoints: {
         xs: '25em',
         sm: '30em',
@@ -20,78 +20,39 @@ export const theme = createTheme({
     },
     scale: 1,
     fontSmoothing: true,
-    focusRing: 'never',
     white: '#ffffff',
-    black: '#24292f',
+    // Near-black instead of pure #000 — softer at the same legibility (landing parity)
+    black: '#1a1b1e',
     colors: {
-        dark: [
-            '#c9d1d9',
-            '#b1bac4',
-            '#8b949e',
-            '#6e7681',
-            '#484f58',
-            '#30363d',
-            '#21262d',
-            '#161b22',
-            '#0d1117',
-            '#010409'
-        ],
-
-        blue: [
-            '#ddf4ff',
-            '#b6e3ff',
-            '#80ccff',
-            '#54aeff',
-            '#218bff',
-            '#0969da',
-            '#0550ae',
-            '#033d8b',
-            '#0a3069',
-            '#002155'
-        ],
-        green: [
-            '#dafbe1',
-            '#aceebb',
-            '#6fdd8b',
-            '#4ac26b',
-            '#2da44e',
-            '#1a7f37',
-            '#116329',
-            '#044f1e',
-            '#003d16',
-            '#002d11'
-        ],
-        yellow: [
-            '#fff8c5',
-            '#fae17d',
-            '#eac54f',
-            '#d4a72c',
-            '#bf8700',
-            '#9a6700',
-            '#7d4e00',
-            '#633c01',
-            '#4d2d00',
-            '#3b2300'
-        ],
-        orange: [
-            '#fff1e5',
-            '#ffd8b5',
-            '#ffb77c',
-            '#fb8f44',
-            '#e16f24',
-            '#bc4c00',
-            '#953800',
-            '#762c00',
-            '#5c2200',
-            '#471700'
+        // Ascella brand ramp (#FB7BE2), shared with the ascella.cloud landing
+        brand: [
+            '#fff0fb',
+            '#fbddf2',
+            '#f3b8e1',
+            '#ec90cf',
+            '#e66ec0',
+            '#e358b7',
+            '#fb7be2',
+            '#c83fa1',
+            '#b3348f',
+            '#9d287d'
         ]
     },
+    radius: {
+        xs: '0.25rem',
+        sm: '0.375rem',
+        md: '0.5rem',
+        lg: '0.75rem',
+        xl: '1rem'
+    },
+    // Shade 8 (not 6/7) so filled CTAs and light-variant text clear 4.5:1 on the
+    // light surface — same rationale as the landing theme
     primaryShade: 8,
-    primaryColor: 'cyan',
+    primaryColor: 'brand',
     autoContrast: true,
-    luminanceThreshold: 0.3,
+    luminanceThreshold: 0.45,
     headings: {
-        fontFamily: 'Unbounded, Vazirmatn, Apple Color Emoji, Noto Sans SC, sans-serif',
+        fontFamily: 'Geist, Vazirmatn, Apple Color Emoji, Noto Sans SC, sans-serif',
         fontWeight: '600'
     },
     defaultRadius: 'md'

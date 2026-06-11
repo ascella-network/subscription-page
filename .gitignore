@@ -72,6 +72,15 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# agent context files (Claude Code / impeccable)
+CLAUDE.md
+PRODUCT.md
+DESIGN.md
+.impeccable/
+
+# local dev fixtures (frontend/.dev/app-config.json)
+.dev/
+
 # dotenv environment variable files
 .env
 .env.development.local

@@ -1,10 +1,10 @@
-/* Timeline styles */
-.timelineRoot {
-    --tl-line-color: rgba(255, 255, 255, 0.08);
-}
-
 .timelineItem {
     padding-bottom: var(--mantine-spacing-md);
+}
+
+/* Keep the connecting line a hairline even on active items */
+.timelineItem[data-line-active]::before {
+    border-color: rgb(26, 27, 30, 0.12);
 }
 
 .timelineItemBullet {

@@ -1,7 +1,6 @@
 import '@mantine/core/styles.layer.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/nprogress/styles.layer.css'
-import '@gfazioli/mantine-spinner/styles.css'
 
 import './global.css'
 
@@ -29,7 +28,7 @@ export function App() {
 
     return (
         <DirectionProvider>
-            <MantineProvider defaultColorScheme="dark" theme={theme}>
+            <MantineProvider forceColorScheme="light" theme={theme}>
                 <ModalsProvider>
                     <Notifications position={mq ? 'top-right' : 'bottom-right'} />
                     <NavigationProgress />

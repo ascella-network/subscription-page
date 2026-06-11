@@ -5,9 +5,11 @@ import components from './overrides'
 export const theme = createTheme({
     components,
     cursorType: 'pointer',
+    // Landing parity: Museo Sans is the brand face (when locally available),
+    // Mulish is the free Google fallback; extra fallbacks cover fa/zh/flags
     fontFamily:
-        'Geist, Vazirmatn, Apple Color Emoji, Noto Sans SC, Twemoji Country Flags, sans-serif',
-    fontFamilyMonospace: 'Geist Mono, ui-monospace, monospace',
+        "'Twemoji Country Flags', 'Museo Sans', 'Museo Sans Rounded', Mulish, Vazirmatn, 'Apple Color Emoji', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontFamilyMonospace: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     breakpoints: {
         xs: '25em',
         sm: '30em',
@@ -52,8 +54,9 @@ export const theme = createTheme({
     autoContrast: true,
     luminanceThreshold: 0.45,
     headings: {
-        fontFamily: 'Geist, Vazirmatn, Apple Color Emoji, Noto Sans SC, sans-serif',
-        fontWeight: '600'
+        fontFamily:
+            "'Twemoji Country Flags', 'Museo Sans', 'Museo Sans Rounded', Mulish, Vazirmatn, 'Apple Color Emoji', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        fontWeight: '800'
     },
     defaultRadius: 'md'
 })

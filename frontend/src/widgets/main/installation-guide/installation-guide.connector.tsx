@@ -15,6 +15,7 @@ import {
     UnstyledButton
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
+import { IconStarFilled } from '@tabler/icons-react'
 import { useClipboard } from '@mantine/hooks'
 import { useState } from 'react'
 import clsx from 'clsx'
@@ -130,6 +131,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                         key={index}
                         leftSection={
                             <span
+                                className="svg-recolor"
                                 dangerouslySetInnerHTML={{
                                     __html: getIconFromLibrary(button.svgIconKey, svgLibrary)
                                 }}
@@ -153,9 +155,7 @@ export const InstallationGuideConnector = (props: IProps) => {
         <Card p={{ base: 'sm', xs: 'md', sm: 'lg', md: 'xl' }} radius="lg">
             <Stack gap="md">
                 <Group gap="sm" justify="space-between">
-                    <Title fw={600} order={4}>
-                        {t(baseTranslations.installationGuideHeader)}
-                    </Title>
+                    <Title order={4}>{t(baseTranslations.installationGuideHeader)}</Title>
 
                     {availablePlatforms.length > 1 && (
                         <NativeSelect
@@ -165,6 +165,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                             }))}
                             leftSection={
                                 <span
+                                    className="svg-recolor"
                                     dangerouslySetInnerHTML={{
                                         __html: availablePlatforms.find(
                                             (opt) => opt.value === selectedPlatform
@@ -204,8 +205,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                                     <UnstyledButton
                                         className={clsx(
                                             classes.appButton,
-                                            isActive && classes.appButtonActive,
-                                            app.featured && classes.appButtonFeatured
+                                            isActive && classes.appButtonActive
                                         )}
                                         key={app.name}
                                         onClick={() => {
@@ -213,10 +213,10 @@ export const InstallationGuideConnector = (props: IProps) => {
                                             setSelectedAppIndex(index)
                                         }}
                                     >
-                                        {app.featured && <span className={classes.featuredBadge} />}
                                         {hasIcon && (
                                             <span
                                                 className={clsx(
+                                                    'svg-recolor',
                                                     classes.bgIcon,
                                                     isActive && classes.bgIconActive
                                                 )}
@@ -229,6 +229,12 @@ export const InstallationGuideConnector = (props: IProps) => {
                                             />
                                         )}
                                         <span className={classes.appName}>{app.name}</span>
+                                        {app.featured && (
+                                            <IconStarFilled
+                                                className={classes.featuredStar}
+                                                size={12}
+                                            />
+                                        )}
                                     </UnstyledButton>
                                 )
                             })}

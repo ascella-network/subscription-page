@@ -34,7 +34,7 @@ export const CardsBlockRenderer = ({
                                 svgIconKey={block.svgIconKey}
                             />
                             <Stack gap={isMobile ? 'xs' : 'sm'} style={{ flex: 1, minWidth: 0 }}>
-                                <Title fw={600} order={6} style={{ wordBreak: 'break-word' }}>
+                                <Title order={6} style={{ wordBreak: 'break-word' }}>
                                     <span
                                         dangerouslySetInnerHTML={{
                                             __html: getLocalizedText(block.title, currentLang)

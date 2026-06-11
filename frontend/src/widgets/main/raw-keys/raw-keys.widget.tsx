@@ -88,9 +88,7 @@ export const RawKeysWidget = ({ isMobile }: IProps) => {
         <Card p={{ base: 'sm', xs: 'md', sm: 'lg', md: 'xl' }} radius="lg">
             <Stack gap="md">
                 <Group gap="sm" justify="space-between">
-                    <Title fw={600} order={4}>
-                        {t(baseTranslations.connectionKeysHeader)}
-                    </Title>
+                    <Title order={4}>{t(baseTranslations.connectionKeysHeader)}</Title>
                     {parsedLinks.length > 1 && (
                         <Badge color="gray" size="lg" variant="light">
                             {parsedLinks.length}

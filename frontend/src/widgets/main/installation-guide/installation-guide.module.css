@@ -44,7 +44,8 @@
 
 .appButtonActive .bgIcon,
 .appButtonActive:hover .bgIcon {
-    opacity: 0.35;
+    color: var(--mantine-color-brand-7);
+    opacity: 0.45;
 }
 
 .bgIcon {
@@ -54,7 +55,8 @@
     transform: translateY(-50%);
     width: 56px;
     height: 56px;
-    opacity: 0.2;
+    color: var(--mantine-color-dimmed);
+    opacity: 0.25;
     pointer-events: none;
     transition: opacity 150ms ease-out;
     mask-image: linear-gradient(to right, transparent 0%, black 40%, black 100%);
@@ -87,14 +89,10 @@
     color: var(--mantine-color-text);
 }
 
-.featuredBadge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 6px;
-    height: 6px;
-    display: inline-block;
-    z-index: 0;
-    border-radius: 50%;
-    background: var(--mantine-color-brand-7);
+.featuredStar {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    margin-left: 8px;
+    color: var(--mantine-color-brand-7);
 }

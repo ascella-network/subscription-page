@@ -85,7 +85,7 @@ export const MainPageComponent = ({ isMobile, platform }: IMainPageComponentProp
                             ) : (
                                 <RemnawaveLogo c="brand.6" size={32} />
                             )}
-                            <Title fw={600} order={4} size="lg">
+                            <Title lh={1} order={4} size="lg">
                                 {brandName}
                             </Title>
                         </Group>

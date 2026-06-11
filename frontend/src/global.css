@@ -125,6 +125,16 @@ body {
     }
 }
 
+/* Recolor monochrome config SVGs (often shipped white for the old dark theme)
+   to the surrounding text color; fill='none' / stroke='none' stay untouched */
+.svg-recolor :is(svg, svg *)[fill]:not([fill='none']) {
+    fill: currentcolor;
+}
+
+.svg-recolor :is(svg, svg *)[stroke]:not([stroke='none']) {
+    stroke: currentcolor;
+}
+
 /* Visible keyboard focus for unstyled/native interactive elements */
 :focus-visible {
     outline: 2px solid var(--mantine-color-brand-8);

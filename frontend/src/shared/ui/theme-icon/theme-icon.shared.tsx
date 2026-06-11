@@ -26,6 +26,7 @@ export const ThemeIconShared = (props: IProps) => {
             variant="light"
         >
             <span
+                className="svg-recolor"
                 dangerouslySetInnerHTML={{
                     __html: getIconFromLibrary(svgIconKey)
                 }}

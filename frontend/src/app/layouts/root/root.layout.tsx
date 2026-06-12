@@ -3,16 +3,21 @@ import {
     SubscriptionPageRawConfigSchema
 } from '@remnawave/subscription-page-types'
 import { GetSubscriptionInfoByShortUuidCommand } from '@remnawave/backend-contract'
+import { useEffect, useLayoutEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import { useLayoutEffect } from 'react'
 import consola from 'consola/browser'
 import { ofetch } from 'ofetch'
 
 import {
+    useAppConfigNullable,
+    useAppConfigStoreActions,
+    useIsConfigLoaded
+} from '@entities/app-config-store'
+import {
     useSubscriptionInfoStoreActions,
     useSubscriptionInfoStoreInfo
 } from '@entities/subscription-info-store'
-import { useAppConfigStoreActions, useIsConfigLoaded } from '@entities/app-config-store'
+import { applyBrandingFavicon } from '@shared/utils/apply-branding-favicon'
 import { LoadingScreen } from '@shared/ui'
 
 import classes from './root.module.css'
@@ -23,6 +28,13 @@ export function RootLayout() {
 
     const { subscription } = useSubscriptionInfoStoreInfo()
     const isConfigLoaded = useIsConfigLoaded()
+    const config = useAppConfigNullable()
+
+    useEffect(() => {
+        if (config) {
+            applyBrandingFavicon(config.brandingSettings.logoUrl)
+        }
+    }, [config])
 
     useLayoutEffect(() => {
         const subPageDiv = document.getElementById('sbpg')

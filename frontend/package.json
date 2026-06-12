@@ -2,7 +2,7 @@
   "name": "@ascella/subscription-page",
   "private": false,
   "type": "module",
-  "version": "7.9.4",
+  "version": "7.9.5",
   "license": "AGPL-3.0-only",
   "author": "Ascella <github.com/ascella-network>",
   "homepage": "https://github.com/ascella-network",

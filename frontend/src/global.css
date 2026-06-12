@@ -141,6 +141,14 @@ body {
     outline-offset: 2px;
 }
 
+/* Form fields already indicate focus via Mantine's brand border
+   (--input-bd-focus) — the outer ring would double up */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .animated-background::before,
     .animated-background::after {

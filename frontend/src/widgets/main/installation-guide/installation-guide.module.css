@@ -96,3 +96,40 @@
     margin-left: 8px;
     color: var(--mantine-color-brand-7);
 }
+
+/* Platform select dropdown options (matches the app picker active state) */
+.platformOption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 500;
+    border-radius: var(--mantine-radius-sm);
+    transition:
+        background 150ms ease-out,
+        color 150ms ease-out;
+}
+
+.platformOption[data-checked],
+.platformOption[data-checked]:hover {
+    background: rgb(251, 123, 226, 0.1);
+    color: var(--mantine-color-text);
+}
+
+.platformOptionIcon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: var(--mantine-color-dimmed);
+}
+
+.platformOptionIcon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.platformOption[data-checked] .platformOptionIcon {
+    color: var(--mantine-color-brand-7);
+}

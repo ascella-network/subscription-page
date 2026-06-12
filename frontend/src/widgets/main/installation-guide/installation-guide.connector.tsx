@@ -9,7 +9,7 @@ import {
     ButtonVariant,
     Card,
     Group,
-    NativeSelect,
+    Select,
     Stack,
     Title,
     UnstyledButton
@@ -158,7 +158,10 @@ export const InstallationGuideConnector = (props: IProps) => {
                     <Title order={4}>{t(baseTranslations.installationGuideHeader)}</Title>
 
                     {availablePlatforms.length > 1 && (
-                        <NativeSelect
+                        <Select
+                            allowDeselect={false}
+                            classNames={{ option: classes.platformOption }}
+                            comboboxProps={{ position: 'bottom-end', width: 200 }}
                             data={availablePlatforms.map((opt) => ({
                                 value: opt.value,
                                 label: opt.label
@@ -179,17 +182,30 @@ export const InstallationGuideConnector = (props: IProps) => {
                                     }}
                                 />
                             }
-                            onChange={(event) => {
+                            onChange={(value) => {
+                                if (!value || value === selectedPlatform) return
                                 vibrate([80])
-                                const value = event.target
-                                    .value as unknown as TSubscriptionPagePlatformKey
-                                setSelectedPlatform(value)
+                                setSelectedPlatform(value as TSubscriptionPagePlatformKey)
                                 setSelectedAppIndex(0)
                             }}
                             radius="md"
+                            renderOption={({ option }) => (
+                                <>
+                                    <span
+                                        className={clsx('svg-recolor', classes.platformOptionIcon)}
+                                        dangerouslySetInnerHTML={{
+                                            __html: availablePlatforms.find(
+                                                (opt) => opt.value === option.value
+                                            )!.icon
+                                        }}
+                                    />
+                                    <span>{option.label}</span>
+                                </>
+                            )}
                             size="sm"
                             value={selectedPlatform}
                             w={150}
+                            withCheckIcon={false}
                         />
                     )}
                 </Group>
